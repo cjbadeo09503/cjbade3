@@ -1,0 +1,204 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local screenGui
+
+-- Create a function to initialize the GUI with the executor, execute button, and UNC script
+local function initializeGUI()
+    if not playerGui:FindFirstChild("ExecutorGui") then
+        -- Create ScreenGui
+        screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "ExecutorGui"
+        screenGui.Parent = playerGui  -- Add to the PlayerGui
+
+        -- Create a function to make any frame draggable
+        local function makeDraggable(frame)
+            local dragging = false
+            local mousePos = nil
+            local framePos = nil
+
+            -- Start dragging when mouse button 1 is pressed
+            frame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = true
+                    mousePos = input.Position
+                    framePos = frame.Position
+                end
+            end)
+
+            -- Update frame position as the mouse moves
+            frame.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local delta = input.Position - mousePos
+                    frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+                end
+            end)
+
+            -- Stop dragging when mouse button 1 is released
+            frame.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+        end
+
+        -- Create a frame to hold everything (the executor)
+        local executorFrame = Instance.new("Frame")
+        executorFrame.Parent = screenGui
+        executorFrame.Size = UDim2.new(0, 400, 0, 400)  -- Set size of the executor
+        executorFrame.Position = UDim2.new(0, 0, 0, 0)  -- Position it at the top left
+        executorFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)  -- Dark background color
+        executorFrame.BorderSizePixel = 0
+        executorFrame.Visible = true
+        makeDraggable(executorFrame)  -- Make executor frame draggable
+
+        -- Create a Button inside the executor (positioned at the top left)
+        local executeButton = Instance.new("TextButton")
+        executeButton.Parent = executorFrame
+        executeButton.Size = UDim2.new(0, 40, 0, 40)  -- Set the button size to 40x40
+        executeButton.Position = UDim2.new(0, 0, 0, 0)  -- Position it at the top left of the frame
+        executeButton.Text = "Execute"
+        executeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green color for the button
+        executeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        executeButton.TextSize = 14  -- Set a smaller text size
+        executeButton.Visible = false  -- Initially, the Execute button is hidden
+
+        -- Create a TextBox for entering the Lua script
+        local textBox = Instance.new("TextBox")
+        textBox.Parent = executorFrame
+        textBox.Size = UDim2.new(0, 380, 0, 50)  -- TextBox takes up most of the space in the frame
+        textBox.Position = UDim2.new(0, 10, 0, 60)  -- Positioned below the button
+        textBox.PlaceholderText = "Enter Lua code"
+        textBox.ClearTextOnFocus = true
+        textBox.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text color
+        textBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)  -- Dark background color
+
+        -- Create a Label to display execution results
+        local resultLabel = Instance.new("TextLabel")
+        resultLabel.Parent = executorFrame
+        resultLabel.Size = UDim2.new(0, 380, 0, 50)
+        resultLabel.Position = UDim2.new(0, 10, 0, 120)
+        resultLabel.Text = "Result will be shown here"
+        resultLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        resultLabel.BackgroundTransparency = 1  -- Make the label background transparent
+
+        -- Button click functionality to execute the Lua code
+        executeButton.MouseButton1Click:Connect(function()
+            local scriptToRun = textBox.Text
+
+            -- Check if there's code in the TextBox
+            if scriptToRun and scriptToRun ~= "" then
+                local success, result = pcall(function()
+                    -- Execute the code entered in the TextBox
+                    local output = loadstring(scriptToRun)()
+                    return output
+                end)
+
+                -- If execution is successful, show result in the resultLabel
+                if success then
+                    resultLabel.Text = "Executed: " .. tostring(result)
+                else
+                    resultLabel.Text = "Error: " .. tostring(result)
+                end
+            else
+                resultLabel.Text = "Please enter code"
+            end
+        end)
+
+        -- Create Inject Button to trigger hiding and showing the Execute button
+        local injectButton = Instance.new("TextButton")
+        injectButton.Parent = executorFrame
+        injectButton.Size = UDim2.new(0, 40, 0, 40)  -- Set size of Inject Button
+        injectButton.Position = UDim2.new(0, 0, 0, 200)  -- Positioned below the Execute button
+        injectButton.Text = "Inject"
+        injectButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)  -- Red color for Inject button
+        injectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        injectButton.TextSize = 14
+
+        -- Inject button click functionality to hide Execute button and show it after 2 seconds
+        injectButton.MouseButton1Click:Connect(function()
+            -- Hide Inject button and Execute button when Inject is clicked
+            injectButton.Visible = false
+            executeButton.Visible = false
+
+            -- Wait for 2 seconds before showing the Execute button again
+            wait(2)
+
+            -- Show Execute button after 2 seconds
+            executeButton.Visible = true
+        end)
+
+        -- UNC Tab Frame
+        local uncTabFrame = Instance.new("Frame")
+        uncTabFrame.Parent = screenGui
+        uncTabFrame.Size = UDim2.new(0, 400, 0, 400)
+        uncTabFrame.Position = UDim2.new(0, 0, 0, 420)  -- Position it below the executor
+        uncTabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)  -- Dark background color
+        uncTabFrame.BorderSizePixel = 0
+        uncTabFrame.Visible = true
+        makeDraggable(uncTabFrame)  -- Make UNC tab draggable
+
+        -- Create a Button for UNC script
+        local uncButton = Instance.new("TextButton")
+        uncButton.Parent = uncTabFrame
+        uncButton.Size = UDim2.new(0, 380, 0, 50)
+        uncButton.Position = UDim2.new(0, 10, 0, 10)
+        uncButton.Text = "Run UNC Script"
+        uncButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green color
+        uncButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        uncButton.TextSize = 14
+
+        -- Button click functionality for UNC Script to load and execute the code
+        uncButton.MouseButton1Click:Connect(function()
+            local success, result = pcall(function()
+                -- Load and execute the UNCCheckEnv script
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/unified-naming-convention/NamingStandard/main/UNCCheckEnv.lua", true))()
+            end)
+
+            -- Show result in the resultLabel
+            if success then
+                resultLabel.Text = "UNC Script executed successfully"
+            else
+                resultLabel.Text = "Error executing UNC Script"
+            end
+        end)
+
+        -- Infinite Yield Tab Frame
+        local yieldTabFrame = Instance.new("Frame")
+        yieldTabFrame.Parent = screenGui
+        yieldTabFrame.Size = UDim2.new(0, 400, 0, 400)
+        yieldTabFrame.Position = UDim2.new(0, 420, 0, 420)  -- Position it below the UNC script tab
+        yieldTabFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)  -- Dark background color
+        yieldTabFrame.BorderSizePixel = 0
+        yieldTabFrame.Visible = true
+        makeDraggable(yieldTabFrame)  -- Make Yield tab draggable
+
+        -- Create a Button for Infinite Yield script
+        local yieldButton = Instance.new("TextButton")
+        yieldButton.Parent = yieldTabFrame
+        yieldButton.Size = UDim2.new(0, 380, 0, 50)
+        yieldButton.Position = UDim2.new(0, 10, 0, 10)
+        yieldButton.Text = "Run Infinite Yield Script"
+        yieldButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green color
+        yieldButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        yieldButton.TextSize = 14
+
+        -- Button click functionality for Infinite Yield to load and execute the code
+        yieldButton.MouseButton1Click:Connect(function()
+            local success, result = pcall(function()
+                -- Load and execute the Infinite Yield script
+                loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source', true))()
+            end)
+
+            -- Show result in the resultLabel
+            if success then
+                resultLabel.Text = "Infinite Yield Script executed successfully"
+            else
+                resultLabel.Text = "Error executing Infinite Yield Script"
+            end
+        end)
+    end
+end
+
+-- Call the initialize function when the script runs
+initializeGUI()
+warn("this gui is made by chatgpt")
